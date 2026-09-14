@@ -5,7 +5,7 @@
 //
 // CACHE_VERSION must be bumped on every deploy that changes any shell
 // file, or returning users can get stuck on stale HTML/CSS/JS.
-const CACHE_VERSION = "nex-shell-v1";
+const CACHE_VERSION = "nex-shell-v4";
 const SHELL_FILES = [
   "./",
   "./index.html",
@@ -15,6 +15,7 @@ const SHELL_FILES = [
   "./calc.js",
   "./tools.js",
   "./voice.js",
+  "./extras.js",
   "./manifest.json",
 ];
 
