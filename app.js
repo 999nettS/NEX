@@ -130,8 +130,9 @@ async function loadModel(modelKey) {
     return true;
   } catch (err) {
     console.error(err);
+    const detail = err?.message ? ` (${err.message})` : "";
     progressText.textContent =
-      "Model failed to load. If this device is low on memory, try the smaller Balanced (1B) model, or reload the page and try again — the model cache may need to be redownloaded after Safari cleared storage.";
+      `Model failed to load${detail}. If this device is low on memory, try the smaller Balanced (1B) model. On cellular, check Low Data Mode is off, or switch to Wi-Fi — this is usually a network interruption partway through a large download, not an app bug. You can also reload and try again if Safari cleared its cache.`;
     statusEl.textContent = "Load failed";
     onlineDot.classList.add("error");
     return false;

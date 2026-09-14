@@ -12,7 +12,7 @@
 // Model weights are large binary shards fetched and cached by WebLLM
 // itself (via the browser's Cache API / IndexedDB under the hood) — this
 // service worker deliberately does not try to intercept or re-cache those.
-const CACHE_VERSION = "nex-shell-v6";
+const CACHE_VERSION = "nex-shell-v7";
 const SHELL_FILES = [
   "./",
   "./index.html",
