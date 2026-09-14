@@ -234,10 +234,6 @@ composer.addEventListener("submit", (e) => {
   handleSend(promptInput.value);
 });
 
-document.querySelectorAll(".suggestions button").forEach((btn) => {
-  btn.addEventListener("click", () => handleSend(btn.textContent));
-});
-
 // ---------------------------------------------------------------------
 // Drawer / navigation
 // ---------------------------------------------------------------------
