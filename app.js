@@ -125,6 +125,7 @@ async function loadModel(modelKey) {
     statusEl.textContent = "Ready";
     onlineDot.classList.add("live");
     modelLabel.textContent = cfg.label;
+    promptInput.placeholder = "Message NEX…";
     await Storage.setSetting("lastModel", modelKey);
     return true;
   } catch (err) {
@@ -224,7 +225,12 @@ function appendSystemNote(text) {
 // ---------------------------------------------------------------------
 async function handleSend(rawText) {
   const text = rawText.trim();
-  if (!text || !engine) return;
+  if (!text) return;
+  if (!engine) {
+    appendSystemNote('Tap "Set up NEX" above first — the model needs to download once before NEX can chat.');
+    el("setupBtn")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
 
   if (!activeConversationId) {
     const conv = await Storage.createConversation(text.slice(0, 40));
@@ -498,6 +504,22 @@ el("clearBtn").addEventListener("click", async () => {
   location.reload();
 });
 
+// A separate, harder reset: clears the cached app shell + unregisters
+// the service worker, for when the app is stuck showing an old/broken
+// version after an update (doesn't touch chats/memory in IndexedDB).
+el("hardResetBtn").addEventListener("click", async () => {
+  if (!confirm("This clears the cached app files (not your chats/memory) and reloads fresh from the network. Continue?")) return;
+  if ("caches" in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((k) => caches.delete(k)));
+  }
+  if ("serviceWorker" in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map((r) => r.unregister()));
+  }
+  location.reload(true);
+});
+
 // ---------------------------------------------------------------------
 // Voice
 // ---------------------------------------------------------------------
@@ -540,6 +562,7 @@ async function boot() {
   autoWebEnabled = await Storage.getSetting("autoWeb", true);
   el("autoWeb").checked = autoWebEnabled;
   answerStyle = await Storage.getSetting("answerStyle", "normal");
+  promptInput.placeholder = "Tap \"Set up NEX\" first…";
   const savedModel = await Storage.getSetting("lastModel", "balanced");
   currentModelKey = savedModel;
   modelLabel.textContent = MODELS[savedModel].label;

@@ -1,11 +1,18 @@
-// sw.js — caches the app shell only. Model weights are large binary
-// shards fetched and cached by WebLLM itself (via the browser's Cache API
-// / IndexedDB under the hood) — this service worker deliberately does not
-// try to intercept or re-cache those.
+// sw.js — caches the app shell, but network-first: always try the
+// network for same-origin files first, and only fall back to cache when
+// offline. Cache-first was causing real bugs — when several shell files
+// change together in an update (e.g. index.html and app.js edited in the
+// same deploy), cache-first could serve a stale mix of old-and-new files
+// that don't agree with each other (an old app.js referencing a button
+// the new index.html removed, for example), silently breaking the whole
+// page. Network-first means you always get a consistent, current set of
+// files whenever you have a connection; the cache is purely an offline
+// fallback now, not a performance-first cache.
 //
-// CACHE_VERSION must be bumped on every deploy that changes any shell
-// file, or returning users can get stuck on stale HTML/CSS/JS.
-const CACHE_VERSION = "nex-shell-v4";
+// Model weights are large binary shards fetched and cached by WebLLM
+// itself (via the browser's Cache API / IndexedDB under the hood) — this
+// service worker deliberately does not try to intercept or re-cache those.
+const CACHE_VERSION = "nex-shell-v6";
 const SHELL_FILES = [
   "./",
   "./index.html",
@@ -36,17 +43,23 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  // Never cache the WebLLM CDN module or model weight requests — always
-  // go to the network so a redeploy of the app can't get pinned to an
-  // incompatible cached runtime version.
+  // Cross-origin (CDN, APIs): always network, never cached here.
   if (url.origin !== self.location.origin) {
     event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
     return;
   }
 
-  // App shell: cache-first, falling back to network, so the shell still
-  // loads offline after the first successful visit.
+  // Same-origin app shell: network-first. Try the network so you always
+  // get a current, internally-consistent set of files; cache a copy of
+  // whatever succeeds; fall back to cache only when the network fails
+  // (offline), so the app still opens without a connection.
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, copy));
+        return res;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
